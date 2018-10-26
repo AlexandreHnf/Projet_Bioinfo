@@ -150,7 +150,7 @@ class Matrix:
 
         return self.seq2.get_acid(i) + self.seq1.get_acid(j)
 
-    def set_letters_seq(self, seq1, seq2):
+    def setup_seq(self, seq1, seq2):
         """ remplit les dictionnaires par
             clé : acide aminée, valeur : indice dans la matrice
         """
@@ -170,13 +170,6 @@ class Matrix:
             s2 = [j for j in range(len_seq2)]
         print(p.DataFrame(self.mat, s2, p.Index(s1, name="*")), end="\n\n")
 
-        # if len_seq != None:
-        #     print(p.DataFrame(self.mat, [i for i in range(len_seq)], \
-        #     p.Index([j for j in range(len_seq)], name="*")), end="\n\n")
-
-        # else:
-        #     print(p.DataFrame(self.mat, list(self.seq2.get_acids()), \
-        #     p.Index(list(self.seq1.get_acids()), name="*")), end="\n\n")
 
     def get_max(self):
         """ Renvoie la position de l'élément maximal de la matrice """
@@ -228,7 +221,7 @@ class MatSubstitution(Matrix):
             line = line.strip("\n")
             if len(line) > 0:
                 if line[0] == " ":
-                    self.set_letters_seq(line.replace(" ", ""), line.replace(" ", ""))
+                    self.setup_seq(line.replace(" ", ""), line.replace(" ", ""))
                        # lettres de seq 1 et 2
                 else:
                     if line[0] != "#":
@@ -328,7 +321,7 @@ class Alignment:
         d'acides aminées
     """
 
-    def __init__(self, I, E, mat_file, seq1, seq2, p):
+    def __init__(self, I, E, mat_file, seq1, seq2, p, prof=None):
         
         self.I = I 
         self.E = E
@@ -339,12 +332,14 @@ class Alignment:
         self.m = self.seq2.length()+1
 
         if self.p == 1 or p == 2: # Si on veut imprimer les informations
-            print("Séquence 1 de longueur {0}: ".format(self.n))
-            self.seq1.display() 
-            print("Séquence 2 de longueur {0}: ".format(self.m))
-            self.seq2.display()
+            if self.seq1 != None:
+                print("Séquence 1 de longueur {0}: ".format(self.n))
+                self.seq1.display() 
+            if self.seq2 != None:
+                print("Séquence 2 de longueur {0}: ".format(self.m))
+                self.seq2.display()
             print("matrice de substitution utilisée: {0}".format(mat_file))
-            print("Pénalité de gap affine: I = {0} | E = {1}".format(self.I, self.E))
+            print("Pénalité de gap : I = {0} | E = {1}".format(self.I, self.E))
 
         # =================== SUBSITUTION ==============================
         self.t = MatSubstitution(mat_file)
@@ -352,7 +347,7 @@ class Alignment:
 
         # =================== SCORING ===============================
 
-        self.S = MatScoring(I, E, self.n, self.m) # Création de la matrice scoring
+        self.S = MatScoring(I, E, self.n, self.m) # Création matrice scoring
 
         # ===================== V ET W ===================================
 
@@ -360,12 +355,15 @@ class Alignment:
         self.W = MatW(self.n, self.m)
 
         self.V.init_V() # Initialise V
-        self.V.set_letters_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
         self.W.init_W() # Initialise W
-        self.W.set_letters_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
+        if self.seq1 != None and self.seq2 != None:
+            self.V.setup_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
+            self.W.setup_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
 
         self.current_sol = [] # Pour le backtracking
         self.all_solutions = []
+        
+        self.prof = prof # Si on veut aligner avec une matrice PROFIL
 
     def get_v(self, i, j):
         return max(self.S.get_score(i-1, j)-self.I,self.V.get_score(i-1,j)-self.E)
@@ -380,10 +378,10 @@ class Alignment:
 
         res = False
         if mat == "v" and self.V.get_score(i,j) == self.S.get_score(i,j):
-                res = True 
+            res = True 
 
         elif mat == "w" and self.W.get_score(i,j) == self.S.get_score(i,j):
-                res = True 
+            res = True 
 
         elif mat == "s":
             letters_ij = self.S.get_letters(i,j) # 'AB' par exemple
@@ -414,12 +412,12 @@ class GlobalAlignment(Alignment):
     une pénalité affine et une méthode globale
     """
 
-    def __init__(self, k, I, E, mat_file, seq1, seq2, p):
-        Alignment.__init__(self, I, E, mat_file, seq1, seq2, p)
+    def __init__(self, k, I, E, mat_file, seq1, seq2, p, prof):
+        Alignment.__init__(self, I, E, mat_file, seq1, seq2, p, prof)
         self.k = k
 
         self.S.init_S_global()  # On initialise la matrice de scoring
-        self.S.set_letters_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
+        self.S.setup_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
 
     def get_s_global(self, i, j, v_ij, w_ij):
         letters_ij = self.S.get_letters(i,j) # 'AB' par exemple
@@ -508,12 +506,12 @@ class LocalAlignment(Alignment):
     une pénalité affine et une méthode locale
     """
 
-    def __init__(self, l, I, E, mat_file, seq1, seq2, p):
-        Alignment.__init__(self, I, E, mat_file, seq1, seq2, p)
+    def __init__(self, l, I, E, mat_file, seq1, seq2, p, prof):
+        Alignment.__init__(self, I, E, mat_file, seq1, seq2, p, prof)
         self.l = l
 
         self.S.init_S_local()  # On initialise la matrice de scoring
-        self.S.set_letters_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
+        self.S.setup_seq("-"+self.seq1.get_acids(), "-"+self.seq2.get_acids())
 
         self.zeros = []
         self.found = False
@@ -521,17 +519,18 @@ class LocalAlignment(Alignment):
     def get_s_local(self, i, j, v_ij, w_ij):
         """ détermine la valeur de S en fonction de V et W et de t"""
 
-        letters_ij = self.S.get_letters(i,j) # 'AB' par exemple
-        t_ij = self.t.get_acid_score(letters_ij[0], letters_ij[1])
-        s_ij = max( self.S.get_score(i-1,j-1) + t_ij, v_ij, w_ij, 0 )
-        # self.S.set_score(i,j, s_ij)    
+        if self.profil == None: # Si on n'aligne pas à un profil
+            letters_ij = self.S.get_letters(i,j) # 'AB' par exemple
+            t_ij = self.t.get_acid_score(letters_ij[0], letters_ij[1])
+            return max( self.S.get_score(i-1,j-1) + t_ij, v_ij, w_ij, 0 )
     
-        return s_ij
+        else: 
+            pssm_ij = self.prof.get_score(self.prof.acid_pos(self.seq2.get_acid(i)),j)
+            return max(self.S.get_score(i-1,j-1) + pssm_ij, v_ij, w_ij, 0)
 
     def compute_scoring(self, start_i, start_j):
-        """ ReCalcule la matrice de
-        scoring pour les alignements locaux  avec pénalité affine 
-        après avoir trouvé un alignement local
+        """ 
+        Calcule la matrice de scoring pour l'alignement local
         """
 
         # ==================== CREATION SCORING ===========================
@@ -574,9 +573,7 @@ class LocalAlignment(Alignment):
 
     def recompute_scoring(self, start_i, start_j):
         """ test de recalcul de la matrice de scoring"""
-        
-        # start_i = start_i 
-        # start_j = start_j 
+
         i = start_i
         j = start_j 
         while i != self.m and j != self.n:
@@ -779,7 +776,7 @@ class Profile:
         self.prof = Matrix()
         self.MSA = MSA # Liste des séquences alignées de manière multiple
         self.acids = "RHKDESTNQCGPAILMFWYV"
-        self.prof.set_letters_seq("", self.acids)
+        self.prof.setup_seq("", self.acids)
         self.Nseq = self.MSA[0].length() # longueur des séquences
         self.Nacids = 20 # nombre d'acides aminées
 
@@ -795,6 +792,12 @@ class Profile:
         self.pa = {"R": 5.53, "H": 2.27,"K": 5.81,"D":5.46,"E":6.73,"S":6.62,\
         "T":5.35,"N":4.05,"Q":3.93,"C":1.38,"G":7.07,"P":4.73,"A":8.25,"I":5.92,\
         "L":9.65,"M":2.41,"F":3.86,"W":1.09,"Y":2.91,"V":6.86} # probabilité d'apparition des acides aminées
+
+    def acid_pos(self, acid):
+        """
+        Renvoie la position de l'acide aminé (la ligne dans la matrice        
+        """
+        return self.acids.index(acid)
 
     def number_acids(self, u, a):
         """
@@ -846,6 +849,24 @@ class Profile:
         # print("1ere ligne: ", self.prof[0])
         self.prof.panda(self.Nseq)
 
+    def consencus(self):
+        """ Renvoie la séquence dont chaque acide aminé possède le score maximal
+            dans sa position dans le profil
+        """
+
+        res = ""
+        for u in range(self.Nseq):
+            tmp_max = ("", -float("inf"))
+            for a in range(len(self.MSA)):
+                Mua = -self.prof.get_score(self.acids.index(self.MSA[a].get_acid(u)),u)
+                # print(self.MSA[a].get_acid(u), " Mua: ", Mua)
+                if Mua > tmp_max[1]:
+                    tmp_max = (self.MSA[a].get_acid(u), Mua)
+
+            res += tmp_max[0]
+        
+        print("consencus: ", res)
+
 def main():
 
     # ================================= GLOBAL ==============================
@@ -859,12 +880,12 @@ def main():
     # best= get_best_globalalignments(P1.get_all_seq(), 4, 4)
     # print("le meilleur score est celui-ci: ", best[0])
 
-    # REDUCE
+    ## REDUCE
     # begin = time.time()
     # remove_high_scores(P1.get_all_seq(), 4, 4)
     # print("temps écoulé: ", time.time() - begin)
 
-    # TEST si le reduce a bien max 60%
+    ## TEST si le reduce a bien max 60%
     # begin = time.time()
     # Ptest = ParserSequence("to-be-aligned-reduced.fasta")
     # Ptest.parse()
@@ -926,17 +947,24 @@ def main():
     P4 = ParserSequence("msaresults-reduced-MUSCLE.fasta") 
     P4.parse() # alignements multiples de séquences 
 
-    # S1 = Sequence("1", "TGVEAENLLL")
-    # S2 = Sequence("2", "PRAKAEESLS")
-    # S3 = Sequence("3", "GRKDAERQLL")
-    # Prof0 = Profile([S1, S2, S3])
-    # Prof0.compute_profile()
+    # EXEMPLE
+    S1 = Sequence("1", "TGVEAENLLL")
+    S2 = Sequence("2", "PRAKAEESLS")
+    S3 = Sequence("3", "GRKDAERQLL")
+    Prof0 = Profile([S1, S2, S3])
+    Prof0.compute_profile()
+    Prof0.consencus()
 
-    Prof = Profile(P3.get_all_seq())
-    Prof.compute_profile()
+    ## PROFIL MSA
+    # Prof = Profile(P3.get_all_seq())
+    # Prof.compute_profile()
 
-    Prof1 = Profile(P4.get_all_seq())
-    Prof1.compute_profile()
+    # #PROFIL MSA REDUCED
+    # Prof1 = Profile(P4.get_all_seq())
+    # Prof1.compute_profile()
+
+
 
 if __name__ == "__main__":
     main()
+
