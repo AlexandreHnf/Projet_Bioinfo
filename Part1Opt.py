@@ -739,103 +739,6 @@ def get_best_globalalignments(S, I, E):
     # sims.panda(len(S))
     
     return best_score
-
-def is_very_similar(S, I, E, seq):
-    """
-    Regarde si une séquence est similaire a toutes les autres séquences
-    """
-
-    for s in S:
-        if s.get_acids() == seq.get_acids():
-            return True 
-        G_tmp = GlobalAlignment(1, I, E, "blosum62.txt", s, seq, 0)
-        tmp_score = G_tmp.Needleman_Wunsch()
-        if tmp_score[0] > 60:
-            return True 
-    return False
-
-def remove_high_scores(S, I, E):
-    # S = liste de séquences
-    reduced = [S[0]]
-    for i in range(1, len(S)):
-        print("i = ", i)
-        if not is_very_similar(reduced, I, E, S[i]):
-            print("ajouté")
-            reduced.append(S[i])
-        print("len reduced: ", len(reduced))
-
-    reduced_file = open("to-be-aligned-reduced.fasta", "w") 
-    for s in reduced:
-        reduced_file.write(s.get_title())
-        reduced_file.write(s.get_acids()+"\n")
-    reduced_file.close()
-
-class Profile:
-    """ Classe représentant un PSSM, un profil, qui représente de manière
-        compacte un alignement de séquence multiple
-    """
-
-    def __init__(self, MSA):
-        self.prof = Matrix()
-        self.MSA = MSA # Liste des séquences alignées de manière multiple
-        self.acids = "RHKDESTNQCGPAILMFWYV"
-        self.prof.set_letters_seq("", self.acids)
-        self.Nseq = self.MSA[0].length() # longueur des séquences
-        self.Nacids = 20 # nombre d'acides aminées
-
-        # pseudocounts
-        self.alpha = self.Nseq - 1  # facteur de cadrage pour les données observées
-        self.beta = math.sqrt(self.Nseq)  # facteur de cadrage
-        # Ala (A) 8.25   Gln (Q) 3.93   Leu (L) 9.65   Ser (S) 6.62
-        # Arg (R) 5.53   Glu (E) 6.73   Lys (K) 5.81   Thr (T) 5.35
-        # Asn (N) 4.05   Gly (G) 7.07   Met (M) 2.41   Trp (W) 1.09
-        # Asp (D) 5.46   His (H) 2.27   Phe (F) 3.86   Tyr (Y) 2.91
-        # Cys (C) 1.38   Ile (I) 5.92   Pro (P) 4.73   Val (V) 6.86
-
-        self.pa = {"R": 5.53, "H": 2.27,"K": 5.81,"D":5.46,"E":6.73,"S":6.62,\
-        "T":5.35,"N":4.05,"Q":3.93,"C":1.38,"G":7.07,"P":4.73,"A":8.25,"I":5.92,\
-        "L":9.65,"M":2.41,"F":3.86,"W":1.09,"Y":2.91,"V":6.86} # probabilité d'apparition des acides aminées
-
-    def number_acids(self, u, a):
-        """
-        Calcule le nombre d'acide a dans la colonne u
-        """
-        Nua = 0 
-        for i in range(self.Nacids):
-            if self.MSA[i].get_acid(u) == a: # acide aminé a la séquence i, col u
-                Nua += 1
-        return Nua
-    
-    def frequency(self, u, b):
-        """ 
-        Calcule la fréquence d'apparition d'un acide aminé b dans la colonne b
-        parmi toutes les séquences de l'alignement multiple
-        """
-
-        Nub = 0 # nombre d'acide b dans la colonne u
-        for i in range(self.Nacids):
-            if self.MSA[i].get_acid(u) == b: # acide aminé a la séquence i, col u
-                Nub += 1
-        
-        return Nub / self.Nseq
-
-    def pseudocount_q(self, u, a):
-        """
-        Calcule le pseudocount associé à l'acide aminé a
-        """
-        return (self.number_acids(u, a) + self.beta*(self.pa[a]/100)) \
-                / (self.Nseq + self.beta )
-        
-    def compute_profile(self):
-        print("length seq: ", self.Nseq)
-        # self.prof.panda(self.Nseq)  # on affiche le profil
-        self.MSA[0].display()         # on affiche la première séquence
-
-        for a in range(self.Nacids):   # lignes
-            for u in range(self.Nseq): # colonnes
-                Qua = self.pseudocount_q(u, self.acids[a])
-                self.prof[a][u] = math.log(Qua/(self.pa[a]/100))
-
         
 
 def main():
@@ -850,19 +753,6 @@ def main():
     # print("========================= TEST BEST SCORE to be aligned ========\n\n")
     # best= get_best_globalalignments(P1.get_all_seq(), 4, 4)
     # print("le meilleur score est celui-ci: ", best[0])
-
-    # reduce
-    # begin = time.time()
-    # remove_high_scores(P1.get_all_seq(), 4, 4)
-    # print("temps écoulé: ", time.time() - begin)
-
-    # test si le reduce a bien max 60%
-    # begin = time.time()
-    # Ptest = ParserSequence("to-be-aligned-reduced.fasta")
-    # Ptest.parse()
-    # best= get_best_globalalignments(Ptest.get_all_seq(), 4, 4)
-    # print("le meilleur score est celui-ci: ", best[0])
-    # print("temps écoulé: ", time.time() - begin)
 
     # print(" ==============================================TEST AZAP et AI: \n\n")
     # seq1 = Sequence("Séquence 1 de l'exemple","AZAP")
@@ -908,15 +798,6 @@ def main():
 
     # L3 = LocalAlignment(3, 12, 2, "blosum62.txt", P2.get_seq(0), P2.get_seq(1), 1)
     # L3.Smith_Waterman()
-
-
-    # ================================== PROFIL =============================
-
-    # P3 = ParserSequence("msaresults-MUSCLE.fasta") 
-    # P3.parse() # alignements multiples de séquences 
-
-    # Prof = Profile(P3.get_all_seq())
-    # Prof.compute_profile()
 
 if __name__ == "__main__":
     main()
