@@ -363,11 +363,15 @@ class Alignment:
         self.prof = prof # Si on veut aligner avec une matrice PROFIL
 
     def get_v(self, i, j):
-        return max(self.S.get_score(i-1, j)-self.I,self.V.get_score(i-1,j)-self.E)
-
+        if self.prof == None:
+            return max(self.S.get_score(i-1, j)-self.I,self.V.get_score(i-1,j)-self.E)
+        else:
+            return self.S.get_score(i-1, j) + self.I
     def get_w(self, i, j):
-        return max(self.S.get_score(i, j-1)-self.I,self.W.get_score(i, j-1)-self.E)
-
+        if self.prof == None:
+            return max(self.S.get_score(i, j-1)-self.I,self.W.get_score(i, j-1)-self.E)
+        else:
+            return self.S.get_score(i, j-1) + self.I
     def is_previous(self, mat, i, j):
         """ Regarde si l'élement ij résulte de l'élément en diagonale,
             en haut ou a gauche 
@@ -387,6 +391,12 @@ class Alignment:
             if self.S.get_score(i-1, j-1) + t_ij == self.S.get_score(i,j):
                 res = True 
         
+        elif mat == "vp" and self.S.get_score(i-1,j)+self.I == self.S.get_score(i,j):
+            print("vp")
+            res = True 
+        elif mat == "wp" and self.S.get_score(i,j-1)+self.I == self.S.get_score(i,j):
+            print("wp")
+            res = True
         elif mat == "sp": # Si on a aligné à un profil
             pssm_ij = self.prof.get_cell(\
                 self.prof.acid_pos(self.seq2.get_acid(i-1)),j-1)
@@ -638,14 +648,19 @@ class LocalAlignment(Alignment):
             prev_i = i
             prev_j = j
             pos = 2
-            if self.is_previous("v", i, j):    # haut
+            if self.prof == None and self.is_previous("v", i, j) or \
+                self.prof != None and self.is_previous("vp", i, j):   # haut
+                # print("v")
                 i-=1
                 pos = 0
-            elif self.is_previous("w", i, j):  # gauche
+            elif self.prof == None and self.is_previous("w", i, j) or \
+                self.prof != None and self.is_previous("wp", i, j): # gauche
+                # print("w")
                 j-=1
                 pos = 1
-            elif self.is_previous("s", i, j) or \
-                self.is_previous("sp", i, j):  # diagonale
+            elif self.prof == None and self.is_previous("s", i, j) or \
+                self.prof != None and self.is_previous("sp", i, j):  # diagonale
+                print("sp")
                 i-=1
                 j-=1
             if self.S.get_score(i,j) != 0:
@@ -685,7 +700,7 @@ class LocalAlignment(Alignment):
         if self.prof == None:
             return R.bind()
         else:
-            print(self.all_solutions)
+            #print(self.all_solutions)
             return R.display_local_prof()
 
 
@@ -893,10 +908,11 @@ class Profile:
         """
         Calcule les pseudocounts associés à l'acide aminé a
         """
+        # print(self.frequency(u,a))
         return (self.alpha*self.frequency(u, a) + self.beta*(self.pa[a]/100)) \
                 / (self.alpha + self.beta)
         
-    def compute_profile(self):
+    def compute_profile(self, q):
         print("length seq: ", self.Nseq)
         print("beta: ", self.beta)
         print("alpha: ", self.alpha)
@@ -904,7 +920,10 @@ class Profile:
         for a in range(self.Nacids):   # lignes
             self.prof.addline()
             for u in range(self.len_seq): # colonnes
-                Qua = self.q1(u, self.acids[a])
+                if q == 1:
+                    Qua = self.q1(u, self.acids[a])
+                elif q == 2:    
+                    Qua = self.q2(u, self.acids[a])
                 Mua = math.log10(Qua/(self.pa[self.acids[a]]/100))
                 # print("u = {0}, a = {1}, Qua = {2}, Mua = {3}".format(\
                     # u, self.acids[a], Qua, Mua))
@@ -912,7 +931,7 @@ class Profile:
         
         self.prof.set_lign([self.pen]*self.len_seq)
         # print("1ere ligne: ", self.prof[0])
-        self.prof.panda(self.len_seq)
+        # self.prof.panda(self.len_seq)
 
     def compute_consencus(self):
         """ Renvoie la séquence dont chaque acide aminé possède le score maximal
@@ -936,7 +955,7 @@ class Profile:
                 #     tmp_max[2] += 1
                 #     break
             # print("\n")
-            if tmp_max[2] <= 10:
+            if tmp_max[2] <= 10 and self.Nseq > 3:
                 tmp_max[0] = "-"
             # print("u: {0}, nb: {1}".format(u, tmp_max[2]))
             self.consencus += tmp_max[0]
@@ -1058,6 +1077,8 @@ def main():
 
     MSA1 = o.ParserSequence("msaresults-MUSCLE.fasta") 
     MSA1.parse() # alignements multiples de séquences 
+    # MSA1 = o.ParserSequence("clustal.fasta")
+    # MSA1.parse()
 
     MSA2 = o.ParserSequence("msaresults-reduced-MUSCLE.fasta") 
     MSA2.parse() # alignements multiples de séquences réduits
@@ -1067,17 +1088,17 @@ def main():
     # S2 = o.Sequence("2", "PRAKAEESLS")
     # S3 = o.Sequence("3", "GRKDAERQLL")
     # Prof0 = Profile([S1, S2, S3], 4)
-    # Prof0.compute_profile()
+    # Prof0.compute_profile(2)
     # Prof0.compute_consencus()
 
     # PROFIL MSA
     Prof = Profile(MSA1.get_all_seq(), 4)
-    Prof.compute_profile()
-    Prof.compute_consencus()
+    Prof.compute_profile(2)
+    # Prof.compute_consencus()
 
     # #PROFIL MSA REDUCED
     # Prof1 = Profile(MSA2.get_all_seq(), 4)
-    # Prof1.compute_profile()
+    # Prof1.compute_profile(2)
     # Prof1.compute_consencus()
 
 
@@ -1090,13 +1111,13 @@ def main():
     P3.parse()
 
     print("Alignement Séquence 1 avec profil")
-    Lp0 = LocalAlignment(2, 4, 4, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
+    Lp0 = LocalAlignment(2, 9, 9, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
                             P3.get_seq(0), 1, Prof)
     Lp0.Smith_Waterman()
 
     # print("Alignement Séquence 2 avec profil")
-    # Lp1 = LocalAlignment(1, 4, 4, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
-                            # P3.get_seq(1), 1, Prof)
+    # Lp1 = LocalAlignment(6, 2, 2, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
+    #                         P3.get_seq(1), 1, Prof)
     # Lp1.Smith_Waterman()
 
     # print("Alignement Séquence 1 avec profil de reduced")
@@ -1106,7 +1127,7 @@ def main():
 
     # print("Alignement Séquence 2 avec profil de reduced")
     # Lp3 = LocalAlignment(1, 4, 4, "blosum62.txt", o.Sequence("", "-"*(MSA2.get_seq(0).length())),
-                            # P3.get_seq(1), 1, Prof1)
+    #                         P3.get_seq(1), 1, Prof1)
     # Lp3.Smith_Waterman()
 
 
