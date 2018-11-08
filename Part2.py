@@ -7,315 +7,6 @@ import other_ADT as o
 p.set_option('display.max_columns', 500)
 p.options.display.float_format = '{:,.3f}'.format
 
-
-# class Sequence:
-#     """ 
-#     Classe qui représente un objet Séquence d'acides aminées 
-#     """
-
-#     def __init__(self, title = "", seq = ""):
-#         """ Crée un objet Séquence """
-
-#         self.__seq = seq # Séquence : string
-#         self.__title = title #Titre de la séquence
-
-#     def get_acids(self):
-#         """ Renvoie les lettres de la séquence """
-#         return self.__seq 
-
-#     def get_acid(self, i):
-#         """ Renvoie l'acide aminé à la position i """
-#         return self.__seq[i]
-
-#     def length(self):
-#         """ Renvoie la taille de la séquence """
-#         return len(self.__seq)
-
-#     def get_title(self):
-#         """ Renvoie le titre de la séquence """
-#         return self.__title 
-
-#     def set_title(self, title):
-#         """ Donne un nom a la séquence """
-#         self.__title = title 
-    
-#     def set_seq(self, seq):
-#         """ met à jour la séquence """
-#         self.__seq = seq 
-
-#     def display(self):
-#         """ Affiche la séquence au format FASTA """
-#         print(self.__title)
-#         print(self.__seq, end="\n\n")
-
-
-# class ParserSequence:
-#     """ 
-#     Classe qui représente un Parser qui va lire un fichier avec des séquences
-#     """
-
-#     def __init__(self, file_name):
-#         """ Crée un objet Parser """
-
-#         self.lines = open(file_name, "r").readlines()  #Lignes du fichier
-#         self.nb_lines = len(self.lines)
-#         self.sequences = [] #Liste d'objets Séquence
-
-#     def create_seq(self, seq, title):
-#         """ Ajoute une séquence a la liste de séquences """
-
-#         new_S = Sequence()   # Crée un nouvel objet Séquence
-#         new_S.set_seq(seq)   # lui donne la séquence correspondante
-#         new_S.set_title(title) # titre de la séquence
-
-#         self.sequences.append(new_S) #ajout d'un nouvel objet séquence
-
-#     def get_seq(self, i):
-#         """ Renvoie une séquence de la liste """
-#         return self.sequences[i]
-    
-#     def get_all_seq(self):
-#         """ Renvoie toute la liste de séquences parsée """
-#         return self.sequences
-        
-#     def parse(self):        
-#         """ Récupère les séquences du fichier """
-
-#         tmp = ""
-#         title = ""
-#         for line in self.lines: # lignes du fichier
-#             if line[0] == ">":
-#                 if tmp != "":    
-#                     self.create_seq(tmp, title)    # on crée un objet séquence          
-#                     tmp = ""
-#                 title = line
-#             else:
-#                 tmp += line.strip("\n")
-
-#         self.create_seq(tmp, title)
-
-# class Matrix:
-#     """ 
-#     Classe qui représente un objet Matrice 
-#     """
-
-#     def __init__(self):
-#         """ Crée un objet Matrice """
-
-#         self.mat = []
-#         self.n = 0 # colonnes (seq1)
-#         self.m = 0 # lignes (seq2)
-#         self.letters_seq1 = {} # dictionnaire clé = lettre, valeur = indice dans matrice
-#         self.letters_seq2 = {}  #     "
-#         self.seq1 = Sequence() # Première séquence
-#         self.seq2 = Sequence() # Deuxième séquence
-
-#     def get_acid_score(self, i, j):
-#         """ Renvoie le score d'une cellule représentée par 2 lettres """
-#         if i == "-" or j == "-":
-#             return -1
-#         else:
-#             return self.mat[self.letters_seq1[i]][self.letters_seq2[j]]
-
-#     def get_score(self, i, j):
-#         """ Renvoie le score d'une cellule en mat[i][j] """
-#         return self.mat[i][j]
-
-#     def set_score(self, i, j, score):
-#         """ donne un score a une cellule """
-#         self.mat[i][j] = score
-
-#     def addline(self):
-#         """ ajoute une ligne dans la matrice """
-#         self.mat.append([])
-#         self.m += 1
-
-#     def add_cell(self, i, score):
-#         """ ajoute un élément dans une ligne (score) """
-#         if isinstance(score, str):
-#             score = int(score)
-
-#         self.mat[i].append(score)
-
-#     def set_lign(self, scores):
-#         """ ajoute toute une ligne avec des scores """
-#         self.mat.append(scores)
-
-#     def set_nb_col(self):
-#         """ détermine le nombre de colonnes """
-#         self.n = len(self.mat[0]) 
-
-#     def get_letters(self, i, j):
-#         """ Renvoie les lettres correspondantes a la cellule i,j """
-
-#         return self.seq2.get_acid(i) + self.seq1.get_acid(j)
-
-#     def setup_seq(self, seq1, seq2):
-#         """ remplit les dictionnaires par
-#             clé : acide aminée, valeur : indice dans la matrice
-#         """
-
-#         self.seq1.set_seq(seq1)
-#         self.seq2.set_seq(seq2)
-#         self.letters_seq1 = dict(zip(seq1, (i for i in range(len(seq1)))))
-#         self.letters_seq2 = dict(zip(seq2, (i for i in range(len(seq2)))))
-
-#     def panda(self, len_seq1=None, len_seq2=None):
-#         """ Moyen d'afficher la matrice de manière plus compacte """
-#         s1 = list(self.seq1.get_acids())
-#         s2 = list(self.seq2.get_acids())
-#         if len_seq1 != None:
-#             s1 = [i for i in range(len_seq1)]
-#         if len_seq2 != None:
-#             s2 = [j for j in range(len_seq2)]
-#         print(p.DataFrame(self.mat, s2, p.Index(s1, name="*")), end="\n\n")
-
-
-#     def get_max(self):
-#         """ Renvoie la position de l'élément maximal de la matrice """
-
-#         maxi = -float("inf") # - inf 
-#         i, j = 0, 0
-#         for line in range(self.m):
-#             current_max = max(self.mat[line])
-#             if current_max > maxi:
-#                 maxi = current_max
-#                 i = line 
-#                 j = self.mat[line].index(current_max)
-
-#         return (i,j)
-
-    
-#     def set_zero(self, positions):
-#         """ Met à 0 les éléments donnés en paramètre dans la matrice """
-
-#         for pos in positions:
-#             self.mat[pos[0]][pos[1]] = 0
-
-
-# class MatSubstitution(Matrix):
-#     """ 
-#     Classe qui représente un Parser qui va lire un fichier avec une matrice
-#     de substitution
-#     Cette classe hérite de Matrix
-#     """
-
-#     def __init__(self, file_name):
-#         """ Crée un objet Parser """
-
-#         Matrix.__init__(self) 
-#         self.lines = open(file_name, "r").readlines()  #Lignes du fichier
-#         self.nb_lines = len(self.lines)
-
-#     def get_mat_sub(self):
-#         """ Renvoie la matrice de subsitution parsée """
-
-#         return self.mat
-
-#     def parse(self):        
-#         """ Récupère la matrice du fichier """
-
-#         i = 0
-#         for line in self.lines: # lignes du fichier
-
-#             line = line.strip("\n")
-#             if len(line) > 0:
-#                 if line[0] == " ":
-#                     self.setup_seq(line.replace(" ", ""), line.replace(" ", ""))
-#                        # lettres de seq 1 et 2
-#                 else:
-#                     if line[0] != "#":
-#                         self.addline()
-#                         all_line = line.split(" ")
-#                         for l in all_line:
-#                             if l != "" and not l.isalpha() and l != "*":
-#                                 self.add_cell(i, l)
-#                         i += 1
-
-#         self.set_nb_col()
-
-
-# class MatScoring(Matrix):
-#     """ Classe qui représente une matrice contenant les scores avec une pénalité
-#         de gap affine
-#         Cette classe hérite de Matrix
-#     """ 
-
-#     def __init__(self, I, E, n, m):
-#         Matrix.__init__(self)
-
-#         self.n = n 
-#         self.m = m 
-#         self.I = I
-#         self.E = E 
-
-#     def init_S_global(self):
-#         """ Initialise 1ere ligne et 1ere colonne de S pour la méthode globale """
-
-#         newline = [0]
-#         for j in range(self.n-1):
-#             newline.append(-self.I - j*self.E)
-#         self.set_lign(newline)
-#         for i in range(self.m-1):
-#             self.set_lign([-self.I - i*self.E] + (self.n-1)*[""])
-
-#     def init_S_local(self):
-#         """ Initialise 1ere ligne et 1ere colonne de S pour la méthode locale """
-
-#         for i in range(self.m):
-#             newline = []
-#             if i == 0:
-#                 newline += [0]*self.n 
-#             else:
-#                 newline += [0] + (self.n-1)*[""]
-
-#             self.set_lign(newline)
-
-
-# class MatV(Matrix):
-#     """ Classe qui représente une matrice permettant de sauvegarder des valeurs 
-#         liées aux lignes lors du calcul de la matrice de scoring 
-#         Cette classe hérite de Matrix
-#     """
-
-#     def __init__(self, n, m):
-#         Matrix.__init__(self)
-
-#         self.n = n 
-#         self.m = m 
-
-#     def init_V(self):
-#         """ Initialise 1ere ligne et 1ere colonne de V """
-
-#         for i in range(self.m):
-#             if i == 0:
-#                 self.set_lign([-float("inf")]*self.n) # -inf -inf -inf ...
-#             else:
-#                 self.set_lign([0] + (self.n-1)*[""]) # 0 ...
-
-
-# class MatW(Matrix):
-#     """ Classe qui représente une matrice permettant de sauvegarder des valeurs 
-#         liées aux colonnes lors du calcul de la matrice de scoring 
-#         Cette classe hérite de Matrix
-#     """
-
-#     def __init__(self, n, m):
-#         Matrix.__init__(self)
-
-#         self.n = n
-#         self.m = m 
-
-#     def init_W(self):
-#         """ Initialise 1ere ligne et 1ere colonne de W """
-
-#         for i in range(self.m):
-#             if i == 0:
-#                 self.set_lign([-float("inf")] + [0]*(self.n-1)) # -inf 0 0 0 0 ...
-#             else:
-#                 self.set_lign([-float("inf")] + (self.n-1)*[""]) # 0 ... 
-
-
 class Alignment:
     """ Classe représentant un objet qui trouvera l'alignement de 2 séquences
         d'acides aminées
@@ -363,15 +54,11 @@ class Alignment:
         self.prof = prof # Si on veut aligner avec une matrice PROFIL
 
     def get_v(self, i, j):
-        if self.prof == None:
-            return max(self.S.get_score(i-1, j)-self.I,self.V.get_score(i-1,j)-self.E)
-        else:
-            return self.S.get_score(i-1, j) + self.I
+        return max(self.S.get_score(i-1, j)-self.I,self.V.get_score(i-1,j)-self.E)
+
     def get_w(self, i, j):
-        if self.prof == None:
-            return max(self.S.get_score(i, j-1)-self.I,self.W.get_score(i, j-1)-self.E)
-        else:
-            return self.S.get_score(i, j-1) + self.I
+        return max(self.S.get_score(i, j-1)-self.I,self.W.get_score(i, j-1)-self.E)
+    
     def is_previous(self, mat, i, j):
         """ Regarde si l'élement ij résulte de l'élément en diagonale,
             en haut ou a gauche 
@@ -391,11 +78,9 @@ class Alignment:
             if self.S.get_score(i-1, j-1) + t_ij == self.S.get_score(i,j):
                 res = True 
         
-        elif mat == "vp" and self.S.get_score(i-1,j)+self.I == self.S.get_score(i,j):
-            print("vp")
+        elif mat == "vp" and self.S.get_score(i-1,j)-self.I == self.S.get_score(i,j):
             res = True 
-        elif mat == "wp" and self.S.get_score(i,j-1)+self.I == self.S.get_score(i,j):
-            print("wp")
+        elif mat == "wp" and self.S.get_score(i,j-1)-self.I == self.S.get_score(i,j):
             res = True
         elif mat == "sp": # Si on a aligné à un profil
             pssm_ij = self.prof.get_cell(\
@@ -409,17 +94,20 @@ class Alignment:
         """ Ajoute une solution à la liste des solutions
             De la forme: ('AB', score)
         """
-
-        letters_ij = self.S.get_letters(i,j) 
-        if pos == 0:
-            letters_ij = letters_ij[0]+"-" # A- par exemple => Si gap vient de V
-        elif pos == 1:
-            letters_ij = "-"+letters_ij[1] # -A par exemple => Si gap vient de W
-        if p: # Si on aligne à un profil
-            self.current_sol.append((letters_ij, i)) # (A-, 0) par ex
+        if p: # Si on aligne au profil
+            # self.current_sol.append((self.seq2.get_acid(i), i))
+            self.current_sol.append(i)
         else:
-            self.current_sol.append((letters_ij, \
-                            self.t.get_acid_score(letters_ij[0], letters_ij[1])))
+            letters_ij = self.S.get_letters(i,j) 
+            if pos == 0:
+                letters_ij = letters_ij[0]+"-" # A- par exemple => Si gap vient de V
+            elif pos == 1:
+                letters_ij = "-"+letters_ij[1] # -A par exemple => Si gap vient de W
+            # if p: # Si on aligne à un profil
+            #     self.current_sol.append((letters_ij, i)) # (A-, 0) par ex
+            else:
+                self.current_sol.append((letters_ij, \
+                                self.t.get_acid_score(letters_ij[0], letters_ij[1])))
 
 
 class GlobalAlignment(Alignment):
@@ -561,11 +249,10 @@ class LocalAlignment(Alignment):
             return max( self.S.get_score(i-1,j-1) + t_ij, v_ij, w_ij, 0 )
     
         else: 
-            # print("acid {0}: {1},{2}".format(self.seq2.get_acid(i-1),
-            #     self.prof.acid_pos(self.seq2.get_acid(i-1)), j-1))
 
             pssm_ij = self.prof.get_cell(\
                 self.prof.acid_pos(self.seq2.get_acid(i-1)),j-1)
+
             return max(self.S.get_score(i-1,j-1) + pssm_ij, v_ij, w_ij, 0)
 
     def compute_scoring(self, start_i, start_j):
@@ -578,11 +265,14 @@ class LocalAlignment(Alignment):
         for i in range(start_i, self.m):
             for j in range(start_j, self.n):
                 if (i,j) not in self.zeros:
-                    v_ij = self.get_v(i, j)     # V(i,j)
-                    self.V.set_score(i,j, v_ij)
-                    w_ij = self.get_w(i, j)     # W(i,j)
-                    self.W.set_score(i,j, w_ij)
-
+                    if self.prof == None:
+                        v_ij = self.get_v(i, j)     # V(i,j)
+                        self.V.set_score(i,j, v_ij)
+                        w_ij = self.get_w(i, j)     # W(i,j)
+                        self.W.set_score(i,j, w_ij)
+                    elif self.prof != None:
+                        v_ij = self.S.get_score(i-1,j) - self.I
+                        w_ij = self.S.get_score(i,j-1) - self.I
                     s_ij = self.get_s_local(i, j, v_ij, w_ij)
                     self.S.set_score(i, j, s_ij)
 
@@ -590,48 +280,44 @@ class LocalAlignment(Alignment):
             print("la matrice de Scoring: ")
             self.S.panda()
 
-    def is_modified(self, i, j):
-        res = False 
-        if (i,j) in self.zeros:
-            res = True
-        else: 
-            v_ij = self.get_v(i,j)
-            w_ij = self.get_w(i,j)
-            s_ij = self.get_s_local(i,j, v_ij, w_ij)
-            # print("score de {0}, {1} : {2}".format(i, j, s_ij))
-            # if v_ij != self.V.get_score(i,j) and \
-            #     w_ij != self.W.get_score(i,j) and \
-            if s_ij != self.S.get_score(i,j):
+    # def is_modified(self, i, j):
+    #     res = False 
+    #     if (i,j) in self.zeros:
+    #         res = True
+    #     else: 
+    #         if self.prof == None:
+    #             v_ij = self.get_v(i,j)
+    #             w_ij = self.get_w(i,j)
+    #         elif self.prof != None:
+    #             v_ij = self.S.get_score(i-1,j) - self.I
+    #             w_ij = self.S.get_score(i,j-1) - self.I
+    #         s_ij = self.get_s_local(i,j, v_ij, w_ij)
+    #         if s_ij != self.S.get_score(i,j):
+    #             if self.prof == None:
+    #                 self.V.set_score(i,j,v_ij) # si c'est modifié, on modifie
+    #                 self.W.set_score(i,j,w_ij)
+    #             self.S.set_score(i,j,s_ij)
+    #             res = True 
+    #     return res 
 
-                self.V.set_score(i,j,v_ij) # si c'est modifié, on modifie
-                self.W.set_score(i,j,w_ij)
-                self.S.set_score(i,j,s_ij)
-                res = True 
-        # print(" {0} {1} : changé ? {2}".format(i, j, res))
-        return res 
+    # def recompute_scoring(self, start_i, start_j):
+    #     """ test de recalcul de la matrice de scoring"""
 
-    def recompute_scoring(self, start_i, start_j):
-        """ test de recalcul de la matrice de scoring"""
-
-        i = start_i
-        j = start_j 
-        while i != self.m and j != self.n:
-            # print("start ij : ({0},{1})".format(i, j))
-            while i != self.m and j != self.n and self.is_modified(i, j):
-                # print("ij 1 : ({0},{1})".format(i, j))
-                j += 1 # colonne suivante 
-            j = start_j 
-            i += 1
-            while i != self.m and j != self.n and self.is_modified(i, j):
-                # print("ij 2: ({0},{1})".format(i, j))
-                i += 1 # ligne suivante 
-            start_i += 1
-            start_j += 1
-            i = start_i # sous carré suivant
-            j = start_j
-        if self.p == 2:
-            # print("la matrice de Scoring: ")
-            self.S.panda()
+    #     i = start_i
+    #     j = start_j 
+    #     while i != self.m and j != self.n:
+    #         while i != self.m and j != self.n and self.is_modified(i, j):
+    #             j += 1 # colonne suivante 
+    #         j = start_j 
+    #         i += 1
+    #         while i != self.m and j != self.n and self.is_modified(i, j):
+    #             i += 1 # ligne suivante 
+    #         start_i += 1
+    #         start_j += 1
+    #         i = start_i # sous carré suivant
+    #         j = start_j
+    #     if self.p == 2:
+    #         self.S.panda()
 
     
     def sol_found(self, i,j):
@@ -645,9 +331,11 @@ class LocalAlignment(Alignment):
             ou un élément 0
         """
         while not self.sol_found(i,j):
+            # print(i)
             prev_i = i
             prev_j = j
             pos = 2
+
             if self.prof == None and self.is_previous("v", i, j) or \
                 self.prof != None and self.is_previous("vp", i, j):   # haut
                 # print("v")
@@ -660,7 +348,7 @@ class LocalAlignment(Alignment):
                 pos = 1
             elif self.prof == None and self.is_previous("s", i, j) or \
                 self.prof != None and self.is_previous("sp", i, j):  # diagonale
-                print("sp")
+                # print("sp")
                 i-=1
                 j-=1
             if self.S.get_score(i,j) != 0:
@@ -675,17 +363,21 @@ class LocalAlignment(Alignment):
     def Smith_Waterman(self):
         self.compute_scoring(1,1)
         # self.S.panda()
+        if self.prof != None:
+            self.all_solutions.append(self.seq2)
 
         for i in range(self.l):
             current_max = self.S.get_max()
+            print("max : ", current_max[0])
             self.bottom_up(current_max[0], current_max[1])
             if i == self.l-1: # Si on a trouvé l solutions
                 break
             # une fois le backtrack fini, on met a 0 l'alignement 
             sols = len(self.current_sol)
             self.S.set_zero(self.zeros[len(self.zeros)-sols:])
-            self.V.set_zero(self.zeros[len(self.zeros)-sols:])
-            self.W.set_zero(self.zeros[len(self.zeros)-sols:])
+            if self.prof == None:
+                self.V.set_zero(self.zeros[len(self.zeros)-sols:])
+                self.W.set_zero(self.zeros[len(self.zeros)-sols:])
 
             self.current_sol = []
             if self.p == 2:
@@ -693,8 +385,8 @@ class LocalAlignment(Alignment):
                 self.S.panda()
 
                 print("recalcul de la matrice: ")
-            # self.compute_scoring(self.zeros[-1][0], self.zeros[-1][1])
-            self.recompute_scoring(self.zeros[-1][0], self.zeros[-1][1])
+            # self.recompute_scoring(self.zeros[-1][0], self.zeros[-1][1])
+            self.compute_scoring(self.zeros[-1][0], self.zeros[-1][1])
 
         R = Result(self.all_solutions, self.p)
         if self.prof == None:
@@ -767,12 +459,19 @@ class Result:
         Imprime les sous-chaînes issues de l'alignement local entre une séquence
         de prot et un Profil
         """
-        for sol in self.all_sol:
+        for sol in range(1, len(self.all_sol)):
             tmp_res = ""
-            for s in sol:
-                tmp_res = s[0][0] + tmp_res # : le A de A- par ex
-            print("Sous séquence obtenue: ", tmp_res)
-            print("=> intervalle: [{0} -> {1}]".format(sol[-1][1]-1, sol[0][1]-1))
+            # print(self.all_sol[sol][-1], self.all_sol[sol][0])
+            for i in range(self.all_sol[sol][-1]-1, self.all_sol[sol][0]-1):
+                tmp_res += self.all_sol[0].get_acid(i) 
+            # for s in sol:
+                # tmp_res = s[0][0] + tmp_res # : le A de A- par ex
+
+                # tmp_res = s[0] + tmp_res
+            print("Sous séquence obtenue: ", tmp_res, len(tmp_res))
+            # print("=> intervalle: [{0} -> {1}]".format(sol[-1][1]-1, sol[0][1]-1))
+            print("=> intervalle: [{0} -> {1}]".format(
+                self.all_sol[sol][-1], self.all_sol[sol][0]-1))
 
 def get_best_globalalignments(S, I, E):
 
@@ -1092,14 +791,14 @@ def main():
     # Prof0.compute_consencus()
 
     # PROFIL MSA
-    Prof = Profile(MSA1.get_all_seq(), 4)
-    Prof.compute_profile(2)
+    # Prof = Profile(MSA1.get_all_seq(), 4)
+    # Prof.compute_profile(2)
     # Prof.compute_consencus()
 
     # #PROFIL MSA REDUCED
-    # Prof1 = Profile(MSA2.get_all_seq(), 4)
-    # Prof1.compute_profile(2)
-    # Prof1.compute_consencus()
+    Prof1 = Profile(MSA2.get_all_seq(), 4)
+    Prof1.compute_profile(2)
+    Prof1.compute_consencus()
 
 
 
@@ -1110,10 +809,10 @@ def main():
     P3 = o.ParserSequence("protein-sequences.fasta") # protéines à aligner avec profil
     P3.parse()
 
-    print("Alignement Séquence 1 avec profil")
-    Lp0 = LocalAlignment(2, 9, 9, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
-                            P3.get_seq(0), 1, Prof)
-    Lp0.Smith_Waterman()
+    # print("Alignement Séquence 1 avec profil")
+    # Lp0 = LocalAlignment(2, 4, 4, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
+    #                         P3.get_seq(0), 1, Prof)
+    # Lp0.Smith_Waterman()
 
     # print("Alignement Séquence 2 avec profil")
     # Lp1 = LocalAlignment(6, 2, 2, "blosum62.txt", o.Sequence("", "-"*(MSA1.get_seq(0).length())),
