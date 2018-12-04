@@ -151,16 +151,11 @@ class ParserProteins:
         Parse le fichier et met les protéines dans une liste
         """
         lines = self.file.readlines()
-        # print(len(lines))
         for i in range(0, len(lines), 3):
-            # self.proteins.append(lines[i] + lines[i+1].strip())
             self.proteins.append(Protein(lines[i].strip(), lines[i+1].strip(), \
                                     lines[i+2].strip()))
-        
-        # self.display()
 
     def display(self):
-        # print(len(self.proteins))
         for i in self.proteins:
             print(i, end="\n\n")
             
@@ -242,14 +237,13 @@ class Counter:
         # print("F_s = {}".format(self.F_s))
         # print("F_sr = {}".format(self.F_sr))
         # print("F_srr = {}".format(self.F_srr))
-        print(self.F_srr["H"]["A"][(-5, "F")])
-        print(self.Freq_srr("H", "A", (-5, "F"), True))
-        print(self.F_srr["C"]["T"][(-4, "V")])
-        print(self.F_srr["E"]["I"][(3, "N")])
+        # print(self.F_srr["H"]["A"][(-5, "F")])
+        # print(self.Freq_srr("H", "A", (-5, "F"), True))
+        # print(self.F_srr["C"]["T"][(-4, "V")])
+        # print(self.F_srr["E"]["I"][(3, "N")])
         # print(self.F_srr["E"])
         # print(self.F_srr["C"]["G"])
-
-        print(self.Freq_s("C"))
+        # print(self.Freq_s("C"))
 
     def __str__(self):
         """
@@ -290,7 +284,6 @@ class gorIII:
     def __init__(self, counter, prot):
         self.c = counter
         self.prot = prot
-        self.predicted = ""
 
     def info_individuelle(self, s, r):
         """
@@ -298,8 +291,11 @@ class gorIII:
         log(F_sr/Fn-s,r) + log(Fn-s/Fs)
         """
 
-        return m.log10(self.c.Freq_sr(s,r)/self.c.Freq_sr(s,r,True)) + m.log10(\
-                       self.c.Freq_s(s, True)/self.c.Freq_s(s))
+        # return m.log10(self.c.Freq_sr(s,r)/self.c.Freq_sr(s,r,True)) + m.log10(\
+        #                self.c.Freq_s(s, True)/self.c.Freq_s(s))
+
+        return (m.log10(self.c.Freq_sr(s, r)) - m.log10(self.c.Freq_sr(s,r,True)))\
+             + (m.log10(self.c.Freq_s(s,True)) - m.log10(self.c.Freq_s(s)))
 
     def info_directionelle(self, s, r, rj):
         """
@@ -308,8 +304,11 @@ class gorIII:
         log(F_srr/Fn-s,rr) + log(F_n-s,r / F_sr)
         """
 
-        return m.log10(self.c.Freq_srr(s, r, rj)/ self.c.Freq_srr(s, r, rj, True))\
-             + m.log10(self.c.Freq_sr(s, r, True) / self.c.Freq_sr(s, r))
+        # return m.log10(self.c.Freq_srr(s, r, rj)/ self.c.Freq_srr(s, r, rj, True))\
+        #      + m.log10(self.c.Freq_sr(s, r, True) / self.c.Freq_sr(s, r))
+
+        return (m.log10(self.c.Freq_srr(s,r,rj)) - m.log10(self.c.Freq_srr(s,r,rj,True)))\
+             + (m.log10(self.c.Freq_sr(s, r, True)) - m.log10(self.c.Freq_sr(s, r)))
 
     def probability(self, s, r, j):
         """
@@ -319,8 +318,8 @@ class gorIII:
 
         res = self.info_individuelle(s, r)
         for m in range(-8, 9):
-            if m != 0 and j+m > 0 and j+m < len(self.prot.get_seq()):
-                res += self.info_directionelle(s, r, (j+m, self.prot.get_aa(j+m)))
+            if m != 0 and j+m >= 0 and j+m < len(self.prot.get_seq()):
+                res += self.info_directionelle(s, r, (m, self.prot.get_aa(j+m)))
 
         return res
 
@@ -330,6 +329,7 @@ class gorIII:
         des informations individuelles et directionelles
         """
 
+        predicted = ""
         for j in range(len(self.prot.get_seq())):
             scores = [0, 0, 0] # [0] = "H", [1] = "E", [2]: "C"
             scores[0] = self.probability("H", self.prot.get_aa(j), j)
@@ -337,15 +337,9 @@ class gorIII:
             scores[2] = self.probability("C", self.prot.get_aa(j), j)
 
             # print(scores)
-            self.predicted += "HEC"[scores.index(max(scores))]
+            predicted += "HEC"[scores.index(max(scores))]
         
-        print(self.prot)
-        print("predicted: ")
-        print(self.predicted)
-
-        qua = PredictionQuality(self.prot, self.predicted)
-        print("Q3: {}%".format(qua.Q3()*100))
-        qua.MCC()
+        return predicted
 
 class PredictionQuality:
     """ 
@@ -381,7 +375,7 @@ class PredictionQuality:
         mcc = {"H": 0, "E": 0, "C": 0}
 
         for x in "HEC":
-            conf = {"TP": 0, "FP": 0, "FN": 0, "TN": 0}
+            conf = {"TP": 0, "FP": 0, "FN": 0, "TN": 0} # mat de confusion
             for i in range(len(self.predicted)):
 
                 # Si prédit x alors que x
@@ -401,21 +395,42 @@ class PredictionQuality:
 
             # Calcul du mcc
             # (TPxTN-FPxFN) / sqrt( (TP+FP)(TP+FN)(TN+FP)(TN+FN) ) 
-
             m_c_c = (conf["TP"]*conf["TN"]-conf["FP"]*conf["FN"]) / \
             m.sqrt((conf["TP"]+conf["FP"])*(conf["TP"]+conf["FN"])*\
             (conf["TN"]+conf["FP"])*(conf["TN"]+conf["FN"]))
 
             mcc[x] += m_c_c
-
-        print(mcc)
-
         
+        return mcc
+
+
+def test_prediction(prot, counter):
+    """
+    Teste la prédiction GOR3 sur les protéines données et les évalue
+    avec des scores Q3 et MCC
+    """
+
+    average_scores = {"Q3": 0, "MCC": {"H": 0, "E": 0, "C": 0}}
+    for p in prot:
+        tmp_g = gorIII(counter, p)
+        qua = PredictionQuality(p, tmp_g.predict())
+        average_scores["Q3"] += qua.Q3()
+        mcc = qua.MCC()
+        average_scores["MCC"]["H"] += mcc["H"]
+        average_scores["MCC"]["E"] += mcc["E"]
+        average_scores["MCC"]["C"] += mcc["C"]
+    
+    for a in average_scores:
+        average_scores[a] /= len(prot) # pour la moyenne
+
+    print(average_scores)
+    
+
 def main():
     # d = t.time()
     # p = ParserDSSP("dataset/dataset/CATH_info.txt", "dssp")
     # p.create_proteins("proteins3.fasta")
-    # print(t.time()-d)
+    # print("Temps écoulé: {} sec".format(t.time()-d))
     # print(p.parse("dataset/dataset/dssp_test/1AVA.dssp", "C"))
 
 
@@ -423,29 +438,35 @@ def main():
     # prot1.parse()
 
 
-
-
-
     # ======================== TESTs pour partie 3 ============================
     # p1 = ParserDSSP("dataset/dataset/CATH_info_test.txt", "dssp_test")
     # p1.create_proteins("proteins_test.fasta")
-    prot2 = ParserProteins("proteins_test.fasta")
+    prot2 = ParserProteins("proteins_test.fasta") # les 5 prots
     prot2.parse()
-
-    # print(prot2.get_proteins())
-    # prot3 = ParserProteins("proteins_test2.fasta")
-    # prot3.parse()
     c = Counter(prot2.get_proteins())
     c.compute_frequencies()
-    # print(c)
-    # c.test()
-    prot_test = prot2.get_prot(0)
-    g = gorIII(c, prot_test)
-    g.predict()
 
-    # print(g.info_individuelle("H", "A"))
-    
+    # gor 3 sur 1ere prot de proteins_test
+    # prot_test = prot2.get_prot(0)
+    # g = gorIII(c, prot_test)
+    # predicted = g.predict()
+    # print(prot2.get_prot(0))
+    # print("predicted: ")
+    # print(predicted)
+    # qua = PredictionQuality(prot2.get_prot(0), predicted)
+    # print("Q3: {}%".format(qua.Q3()*100))
+    # print("MCC: ", qua.MCC())
 
+    # ========================== 3000 prots =======================
+    prot3 = ParserProteins("proteins.fasta") # les 3000 prots
+    prot3.parse()
+    c1 = Counter(prot3.get_proteins()[:3000])
+    d = t.time()
+    c1.compute_frequencies()
+    print("Temps écoulé pour compteurs des 3000 prots: {} sec".format(t.time()-d))
+    d2 = t.time()
+    test_prediction(prot3.get_proteins()[3000:], c1) # les 713 autres prots
+    print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
 
 if __name__ == "__main__":
     main()
