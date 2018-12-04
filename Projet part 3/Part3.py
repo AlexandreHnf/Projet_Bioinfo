@@ -75,6 +75,48 @@ class ParserDSSP:
         except:
             print("Fichier proteins invalide")
 
+class Protein:
+    """
+    Classe représentant une protéine en format:
+    > identifier|Protein name|Organism
+    Protein
+    Secondary struct
+    """
+
+    def __init__(self, title, seq, struct):
+        self.title = title
+        self.seq = seq
+        self.struct = struct 
+    
+    def get_seq(self):
+        """
+        Renvoie la séquence
+        """
+        return self.seq
+
+    def get_aa(self, i):
+        """
+        Renvoie l'acide aminé à la position i dans la séquence
+        """
+        return self.seq[i]
+
+    def get_structures(self):
+        """
+        Renvoie la structure secondaire 
+        """
+        return self.struct
+
+    def get_struct(self, i):
+        """
+        Renvoie la structure à la position i
+        """
+        return self.struct[i]
+
+    def __str__(self):
+        """
+        Affiche la protéine
+        """
+        return self.title + "\n" + self.seq + "\n" + self.struct
 
 class ParserProteins:
     """
@@ -90,7 +132,7 @@ class ParserProteins:
         except:
             print("fichier invalide")
 
-        self.proteins = []
+        self.proteins = [] # liste de protéines
         
     def get_prot(self, i):
         """
@@ -98,67 +140,220 @@ class ParserProteins:
         """
         return self.proteins[i]
 
+    def get_proteins(self):
+        """
+        Renvoie la liste des protéines
+        """
+        return self.proteins
+
     def parse(self):
         """
         Parse le fichier et met les protéines dans une liste
         """
         lines = self.file.readlines()
-        print(len(lines))
-        for i in range(1, len(lines), 3):
-            self.proteins.append(lines[i] + lines[i+1].strip())
+        # print(len(lines))
+        for i in range(0, len(lines), 3):
+            # self.proteins.append(lines[i] + lines[i+1].strip())
+            self.proteins.append(Protein(lines[i].strip(), lines[i+1].strip(), \
+                                    lines[i+2].strip()))
         
-        self.display()
+        # self.display()
 
     def display(self):
-        print(len(self.proteins))
+        # print(len(self.proteins))
         for i in self.proteins:
-            print(i, end=" <<<<<<<<<<<<<<<<\n\n")
+            print(i, end="\n\n")
             
+class Counter:
+    """
+    Classe représentant un compteur, celui-ci va servir à comptabiliser les 
+    fréquences 
+    """
+
+    def __init__(self, proteins):
+        self.aa = {"R","H","K","D","E","S","T","N","Q","C","G","P","A","I","L","M",\
+              "F","W","Y","V","B"}
+        self.o = {"H": "EC", "E": "HC", "C": "HE"} # les n - S possibles
+
+        self.F_s = {"H": 0, "E": 0, "C": 0}
+        self.F_sr = {"H": {}, "E": {}, "C": {}}
+        self.F_srr = {"H": {}, "E": {}, "C": {}}
+        for a in self.aa:
+            for s in "HEC":
+                self.F_sr[s][a] = 0
+                self.F_srr[s][a] = {}
+
+        self.proteins = proteins # liste de protéines (+/- 3000)
+
+    def Freq_s(self, s, o = False):
+        """
+        Renvoie la fréquence d'apparition de la structure s
+        """
+        if o: # Si n-s
+            return self.F_s[self.o[s][0]] + self.F_s[self.o[s][1]]
+        else:
+            return self.F_s[s]
+
+    def Freq_sr(self, s, r, o = False):
+        """
+        Renvoie la fréquence d'apparition de la structure s avec un résidu r
+        """
+        if o: # Si n-s
+            return self.F_sr[self.o[s][0]][r] + self.F_sr[self.o[s][1]][r]
+        else:
+            return self.F_sr[s][r]
+
+    def Freq_srr(self, s, r, rm, o = False):
+        """
+        Renvoie la fréquence d'apparition de la structure s avec un résidu r
+        et un autre résidu r dans la position m dans son voisinnage
+        """
+        if o: # Si n-s
+            return self.F_srr[self.o[s][0]][r].get(rm, 1) + \
+                   self.F_srr[self.o[s][1]][r].get(rm, 1)
+        else:
+            return self.F_srr[s][r].get(rm, 1)
+
+    def compute_frequencies(self):
+        """
+        Calcule les fréquences (F_sr, F_s et F_s,rj+m,rj)
+        """
+
+        for p in self.proteins:                                     # protéines
+            for i in range(len(p.get_structures())):
+                self.F_s[p.get_struct(i)] += 1                      # F_s
+                self.F_sr[p.get_struct(i)][p.get_aa(i)] += 1        # F_sr
+
+                for j in range(-8, 9):
+                    # Si pas 0 et que le voisin existe
+                    if j != 0 and i+j >= 0 and i+j < len(p.get_structures()): 
+                        if (j, p.get_aa(i+j)) not in \
+                            self.F_srr[p.get_struct(i)][p.get_aa(i)]:
+
+                            self.F_srr[p.get_struct(i)][p.get_aa(i)]\
+                                [(j, p.get_aa(i+j))] = 1
+                        
+                        else:
+                            # Incrémentation du compteur F_srr
+                            self.F_srr[p.get_struct(i)][p.get_aa(i)]\
+                                [(j, p.get_aa(i+j))] += 1
+
+        # print("")
+        # print("F_s = {}".format(self.F_s))
+        # print("F_sr = {}".format(self.F_sr))
+        # print("F_srr = {}".format(self.F_srr))
+        print(self.F_srr["H"]["A"][(-5, "F")])
+        print(self.Freq_srr("H", "A", (-5, "F"), True))
+        print(self.F_srr["C"]["T"][(-4, "V")])
+        print(self.F_srr["E"]["I"][(3, "N")])
+        # print(self.F_srr["E"])
+        # print(self.F_srr["C"]["G"])
+
+        print(self.Freq_s("C"))
+
+    def __str__(self):
+        """
+        Affiche le tableau
+        """
+
+        res = ""
+        # F_s
+        res += "F_s: \nH : {}   |   E : {}   |   C : {}\n\n   "\
+            .format(self.F_s["H"], self.F_s["E"], self.F_s["C"])
+
+        # F_sr
+        for a in self.aa:
+            res += a + "  "
+        res += "\nF_sr: \n"
+        for s in "HEC":
+            res += s + "| "
+            for a in self.aa:
+                res += "{}  ".format(self.F_sr[s][a])
+            res += "\n"
+        # F_srr
+        # res += "F_srr: \n"
+        # for s in "HEC":
+        #     res += s + ": \n"
+        #     for a in self.aa:
+        #         res += "   {} : ".format(a)
+        #         for f in self.F_srr[s][a]:
+        #             res += "{}({}):{}, ".format(f[1], f[0], self.F_srr[s][a][f])
+        #         res += "\n"
+        #     res += "\n"
+        return res
+
 
 class gorIII:
     """
     Classe représentant un prédicteur de structure utilisant la méthode GOR III
     """
-    def __init__(self, seq, struct):
-        self.seq = seq
-        self.struct = struct
+    def __init__(self, counter, prot):
+        self.c = counter
+        self.prot = prot
         self.predicted = ""
 
-    def frequency(self, s, use_s, r = None):
+    def info_individuelle(self, s, r):
         """
-        Calcule la fréquence d'apparition:
-        - d'une structure
-        - d'un acide aminé dans une structure
-        - des autres structures (use_s = False)
+        Calcule l'information individuelle:
+        log(F_sr/Fn-s,r) + log(Fn-s/Fs)
         """
 
-        res = 0
-        if r == None: # f_s
-            for i in self.struct:
-                if use_s == True and i == s or use_s == False and i != s:
-                    res += 1
-        else:
-            pass
+        return m.log10(self.c.Freq_sr(s,r)/self.c.Freq_sr(s,r,True)) + m.log10(\
+                       self.c.Freq_s(s, True)/self.c.Freq_s(s))
 
+    def info_directionelle(self, s, r, rj):
+        """
+        Renvoie l'information directionelle (prenant en compte le voisinnage)
+        I(Sj, Rj+m, Rj) qui vaut
+        log(F_srr/Fn-s,rr) + log(F_n-s,r / F_sr)
+        """
 
-    def info_individuelle(self, j):
-        pass
+        return m.log10(self.c.Freq_srr(s, r, rj)/ self.c.Freq_srr(s, r, rj, True))\
+             + m.log10(self.c.Freq_sr(s, r, True) / self.c.Freq_sr(s, r))
 
-    def info_directionnelle(self, j):
-        pass
+    def probability(self, s, r, j):
+        """
+        calcule la probabilité qu'un résidu adopte une certaine structure
+        I(Sj,Rj) + sum(I(Sj,Rj+m, Rj))
+        """
+
+        res = self.info_individuelle(s, r)
+        for m in range(-8, 9):
+            if m != 0 and j+m > 0 and j+m < len(self.prot.get_seq()):
+                res += self.info_directionelle(s, r, (j+m, self.prot.get_aa(j+m)))
+
+        return res
 
     def predict(self):
-        pass
+        """
+        prédit la structure secondaire d'une séquence d'acide aminé sur base
+        des informations individuelles et directionelles
+        """
 
+        for j in range(len(self.prot.get_seq())):
+            scores = [0, 0, 0] # [0] = "H", [1] = "E", [2]: "C"
+            scores[0] = self.probability("H", self.prot.get_aa(j), j)
+            scores[1] = self.probability("E", self.prot.get_aa(j), j)
+            scores[2] = self.probability("C", self.prot.get_aa(j), j)
+
+            # print(scores)
+            self.predicted += "HEC"[scores.index(max(scores))]
+        
+        print(self.prot)
+        print("predicted: ")
+        print(self.predicted)
+
+        qua = PredictionQuality(self.prot, self.predicted)
+        print("Q3: {}%".format(qua.Q3()*100))
+        qua.MCC()
 
 class PredictionQuality:
     """ 
     Classe représentant un évaluateur de la qualité d'une prédiction
     """
 
-    def __init__(self, seq, struct, predicted):
-        self.seq = seq
-        self.struct = struct 
+    def __init__(self, prot, predicted):
+        self.prot = prot
         self.predicted = predicted
 
     def Q3(self):
@@ -167,14 +362,14 @@ class PredictionQuality:
         => nombre de résidus correctement prédits / nombre total de résidus
         """
 
-        incorrects = 0
+        corrects = 0
         for i in range(len(self.predicted)):
-            if self.predicted[i] != self.struct[i]:
-                incorrects += 1
+            if self.predicted[i] == self.prot.get_struct(i):
+                corrects += 1
         
-        return incorrects/len(self.predicted)
+        return corrects/len(self.predicted)
 
-    def MCC(self, x):
+    def MCC(self):
         """
         Mesure de qualité d'une prédiction prenant en compte 
         TP : prédit x alors que x
@@ -190,17 +385,18 @@ class PredictionQuality:
             for i in range(len(self.predicted)):
 
                 # Si prédit x alors que x
-                if self.predicted[i] == x and self.predicted[i] == self.struct[i]:
+                if self.predicted[i] == x and self.predicted[i] == \
+                    self.prot.get_struct(i):
                     conf["TP"] += 1
                 # Si prédit x alors que pas x
-                elif self.predicted[i] == x and self.struct[i] != x:
+                elif self.predicted[i] == x and self.prot.get_struct(i) != x:
                     conf["FP"] += 1
                 # Si prédit pas x alors que x
-                elif self.predicted[i] != x and self.struct[i] == x:
+                elif self.predicted[i] != x and self.prot.get_struct(i) == x:
                     conf["FN"] += 1
                 # Si prédit pas x alors que pas x
-                elif self.predicted[i] != x and self.struct[i] != x \
-                    and self.predicted[i] == self.struct[i]:
+                elif self.predicted[i] != x and self.prot.get_struct(i) != x \
+                    and self.predicted[i] == self.prot.get_struct(i):
                     conf["TN"] += 1
 
             # Calcul du mcc
@@ -218,12 +414,12 @@ class PredictionQuality:
 def main():
     # d = t.time()
     # p = ParserDSSP("dataset/dataset/CATH_info.txt", "dssp")
-    # p.create_proteins("proteins3.txt")
+    # p.create_proteins("proteins3.fasta")
     # print(t.time()-d)
     # print(p.parse("dataset/dataset/dssp_test/1AVA.dssp", "C"))
 
 
-    # prot1 = ParserProteins("proteins2.txt")
+    # prot1 = ParserProteins("proteins2.fasta")
     # prot1.parse()
 
 
@@ -232,10 +428,23 @@ def main():
 
     # ======================== TESTs pour partie 3 ============================
     # p1 = ParserDSSP("dataset/dataset/CATH_info_test.txt", "dssp_test")
-    # p1.create_proteins("proteins_test.txt")
-    # prot2 = ParserProteins("proteins_test.txt")
-    # prot2.parse()
-    # g2 = gorIII()
+    # p1.create_proteins("proteins_test.fasta")
+    prot2 = ParserProteins("proteins_test.fasta")
+    prot2.parse()
+
+    # print(prot2.get_proteins())
+    # prot3 = ParserProteins("proteins_test2.fasta")
+    # prot3.parse()
+    c = Counter(prot2.get_proteins())
+    c.compute_frequencies()
+    # print(c)
+    # c.test()
+    prot_test = prot2.get_prot(0)
+    g = gorIII(c, prot_test)
+    g.predict()
+
+    # print(g.info_individuelle("H", "A"))
+    
 
 
 if __name__ == "__main__":
