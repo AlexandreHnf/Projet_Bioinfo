@@ -50,7 +50,7 @@ class ParserDSSP:
         # ====== PROT + STRUCTURE SECONDAIRE ======
         for i in range(28, len(lines)):
             # Si la chaine est celle qu'on donne et le résidé n'est pas X,Z ou B
-            if lines[i][11] == chain and lines[i][13] not in "XZB":
+            if lines[i][11] == chain and lines[i][13] not in "XZ":
                 if lines[i][13].islower():
                     res[1] += "C"
                 else:
@@ -297,9 +297,9 @@ class gorIII:
         return (m.log10(self.c.Freq_sr(s, r)) - m.log10(self.c.Freq_sr(s,r,True)))\
              + (m.log10(self.c.Freq_s(s,True)) - m.log10(self.c.Freq_s(s)))
 
-    def info_directionelle(self, s, r, rj):
+    def info_directionnelle(self, s, r, rj):
         """
-        Renvoie l'information directionelle (prenant en compte le voisinnage)
+        Renvoie l'information directionnelle (prenant en compte le voisinnage)
         I(Sj, Rj+m, Rj) qui vaut
         log(F_srr/Fn-s,rr) + log(F_n-s,r / F_sr)
         """
@@ -319,14 +319,14 @@ class gorIII:
         res = self.info_individuelle(s, r)
         for m in range(-8, 9):
             if m != 0 and j+m >= 0 and j+m < len(self.prot.get_seq()):
-                res += self.info_directionelle(s, r, (m, self.prot.get_aa(j+m)))
+                res += self.info_directionnelle(s, r, (m, self.prot.get_aa(j+m)))
 
         return res
 
     def predict(self):
         """
         prédit la structure secondaire d'une séquence d'acide aminé sur base
-        des informations individuelles et directionelles
+        des informations individuelles et directionnelles
         """
 
         predicted = ""
@@ -440,7 +440,7 @@ def test_prediction(prot, counter, display=False):
 def main():
     # d = t.time()
     # p = ParserDSSP("dataset/dataset/CATH_info.txt", "dssp")
-    # p.create_proteins("proteins3.fasta")
+    # p.create_proteins("proteins.fasta")
     # print("Temps écoulé: {} sec".format(t.time()-d))
     # print(p.parse("dataset/dataset/dssp_test/1AVA.dssp", "C"))
 
@@ -475,6 +475,7 @@ def main():
     d = t.time()
     c1.compute_frequencies()
     print("Temps écoulé pour compteurs des 3000 prots: {} sec".format(t.time()-d))
+    
     # d2 = t.time()
     # test_prediction(prot3.get_proteins()[3000:], c1) # les 713 autres prots
     # print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
