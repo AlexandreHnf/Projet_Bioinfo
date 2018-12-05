@@ -395,16 +395,17 @@ class PredictionQuality:
 
             # Calcul du mcc
             # (TPxTN-FPxFN) / sqrt( (TP+FP)(TP+FN)(TN+FP)(TN+FN) ) 
-            m_c_c = (conf["TP"]*conf["TN"]-conf["FP"]*conf["FN"]) / \
-            m.sqrt((conf["TP"]+conf["FP"])*(conf["TP"]+conf["FN"])*\
-            (conf["TN"]+conf["FP"])*(conf["TN"]+conf["FN"]))
 
-            mcc[x] += m_c_c
+            # dénominateur
+            den = m.sqrt((conf["TP"]+conf["FP"])*(conf["TP"]+conf["FN"])*\
+                         (conf["TN"]+conf["FP"])*(conf["TN"]+conf["FN"]))
+            if den != 0:
+                mcc[x] += (conf["TP"]*conf["TN"]-conf["FP"]*conf["FN"]) / den
         
         return mcc
 
 
-def test_prediction(prot, counter):
+def test_prediction(prot, counter, display=False):
     """
     Teste la prédiction GOR3 sur les protéines données et les évalue
     avec des scores Q3 et MCC
@@ -413,17 +414,27 @@ def test_prediction(prot, counter):
     average_scores = {"Q3": 0, "MCC": {"H": 0, "E": 0, "C": 0}}
     for p in prot:
         tmp_g = gorIII(counter, p)
-        qua = PredictionQuality(p, tmp_g.predict())
-        average_scores["Q3"] += qua.Q3()
+        prediction = tmp_g.predict()
+        qua = PredictionQuality(p, prediction)
+        q3 = qua.Q3()
+        average_scores["Q3"] += q3
         mcc = qua.MCC()
         average_scores["MCC"]["H"] += mcc["H"]
         average_scores["MCC"]["E"] += mcc["E"]
         average_scores["MCC"]["C"] += mcc["C"]
-    
-    for a in average_scores:
-        average_scores[a] /= len(prot) # pour la moyenne
 
-    print(average_scores)
+        if display:
+            print(p)
+            print("predicted: ")
+            print(prediction)
+            print("Q3: {}%, MCC: [H]: {}  [E]: {}  [C]: {}".format(\
+            q3*100, mcc["H"], mcc["E"], mcc["C"]))
+    
+    average_scores["Q3"] /= len(prot)
+    for s in average_scores["MCC"]:
+        average_scores["MCC"][s] /= len(prot) # pour la moyenne
+
+    print("Scores moyens: ", average_scores)
     
 
 def main():
@@ -443,10 +454,10 @@ def main():
     # p1.create_proteins("proteins_test.fasta")
     prot2 = ParserProteins("proteins_test.fasta") # les 5 prots
     prot2.parse()
-    c = Counter(prot2.get_proteins())
-    c.compute_frequencies()
-
-    # gor 3 sur 1ere prot de proteins_test
+    # c = Counter(prot2.get_proteins())
+    # c.compute_frequencies()
+    
+    # =============================== 1ere prot des 5 de test ================
     # prot_test = prot2.get_prot(0)
     # g = gorIII(c, prot_test)
     # predicted = g.predict()
@@ -464,9 +475,15 @@ def main():
     d = t.time()
     c1.compute_frequencies()
     print("Temps écoulé pour compteurs des 3000 prots: {} sec".format(t.time()-d))
-    d2 = t.time()
-    test_prediction(prot3.get_proteins()[3000:], c1) # les 713 autres prots
-    print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
+    # d2 = t.time()
+    # test_prediction(prot3.get_proteins()[3000:], c1) # les 713 autres prots
+    # print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
+
+    # ======================= PARTIE 3 ==============================
+
+    d = t.time()
+    test_prediction(prot2.get_proteins(), c1, True)
+    print("Temps écoulé pour prédire les 5 prots: {} sec".format(t.time()-d))
 
 if __name__ == "__main__":
     main()
