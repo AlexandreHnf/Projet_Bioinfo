@@ -1,5 +1,6 @@
 import math as m
 import time as t
+import statistics
 
 
 class ParserDSSP:
@@ -29,9 +30,8 @@ class ParserDSSP:
         res += protein_name[-2] + "|"      # identifiant
         for n in protein_name[1:-3]:
             res += n + " "
-        res = res[:-1] + "|" + organism[0][1:] # organisme
+        res = res[:-1] + "|" + " ".join(organism) # organisme
         return res
-
 
     def parse(self, dssp_file, chain):
         """
@@ -45,19 +45,18 @@ class ParserDSSP:
         
         # ====== TITLE =======
         lines = d.readlines()
-        res[0] = self.get_title(lines[2].split(), (lines[4].split(":")[1]).split(';'))
+        res[0] = self.get_title(lines[2].split(), (lines[4].split(":")[1]).split()[:-1])
 
         # ====== PROT + STRUCTURE SECONDAIRE ======
         for i in range(28, len(lines)):
-            # Si la chaine est celle qu'on donne et le résidé n'est pas X,Z ou B
-            if lines[i][11] == chain and lines[i][13] not in "XZ":
+            # Si la chaine est celle qu'on donne et le résidu n'est pas X,Z, B
+            if lines[i][11] == chain and lines[i][13] not in "XZB":
                 if lines[i][13].islower():
                     res[1] += "C"
                 else:
                     res[1] += lines[i][13] # acide aminé
                 res[2] += self.secondary_struct[lines[i][16]] # structure secondaire
 
-        # print(res[0] + "\n" + res[1] + "\n" + res[2] + "\n")
         return res[0].strip() + "\n" + res[1] + "\n" + res[2] + "\n"
 
     def create_proteins(self, prot_file):
@@ -69,7 +68,6 @@ class ParserDSSP:
             p = open(prot_file, "w")
             for line in self.cath:
                 l = line.split()[0]
-                # dssp_file = "dataset/dataset/{}/".format(dssp) + l[:-1] + ".dssp"
                 dssp_file = "dataset/dataset/{}/{}.dssp".format(self.dssp_dir, l[:-1])
                 p.write(self.parse(dssp_file, l[-1]))
         except:
@@ -83,39 +81,50 @@ class Protein:
     Secondary struct
     """
 
-    def __init__(self, title, seq, struct):
+    def __init__(self, title="", seq="", struct="", prediction = ""):
         self.title = title
         self.seq = seq
         self.struct = struct 
+        self.prediction = prediction
     
     def get_seq(self):
-        """
-        Renvoie la séquence
-        """
+        """Renvoie la séquence"""
         return self.seq
+    
+    def set_seq(self, seq):
+        """Met une séquence"""
+        self.seq = seq
 
     def get_aa(self, i):
-        """
-        Renvoie l'acide aminé à la position i dans la séquence
-        """
+        """Renvoie l'acide aminé à la position i dans la séquence"""
         return self.seq[i]
 
+    def set_prediction(self, p):
+        """ Met une prédiction """
+        self.prediction = p
+
+    def get_prediction(self):
+        """Renvoie la prédiction"""
+        return self.prediction 
+    
+    def get_pred(self, i):
+        """Renvoie la structure i de la prédiction"""
+        return self.prediction[i]
+
     def get_structures(self):
-        """
-        Renvoie la structure secondaire 
-        """
+        """Renvoie la structure secondaire """
         return self.struct
 
     def get_struct(self, i):
-        """
-        Renvoie la structure à la position i
-        """
+        """Renvoie la structure à la position i"""
         return self.struct[i]
 
+    def set_struct(self, s):
+        """Met une nouvelle structure"""
+        self.struct = s
+
     def __str__(self):
-        """
-        Affiche la protéine
-        """
+        """Affiche la protéine"""
         return self.title + "\n" + self.seq + "\n" + self.struct
 
 class ParserProteins:
@@ -167,7 +176,7 @@ class Counter:
 
     def __init__(self, proteins):
         self.aa = {"R","H","K","D","E","S","T","N","Q","C","G","P","A","I","L","M",\
-              "F","W","Y","V","B"}
+              "F","W","Y","V"}
         self.o = {"H": "EC", "E": "HC", "C": "HE"} # les n - S possibles
 
         self.F_s = {"H": 0, "E": 0, "C": 0}
@@ -233,48 +242,23 @@ class Counter:
                             self.F_srr[p.get_struct(i)][p.get_aa(i)]\
                                 [(j, p.get_aa(i+j))] += 1
 
-        # print("")
-        # print("F_s = {}".format(self.F_s))
-        # print("F_sr = {}".format(self.F_sr))
-        # print("F_srr = {}".format(self.F_srr))
-        # print(self.F_srr["H"]["A"][(-5, "F")])
-        # print(self.Freq_srr("H", "A", (-5, "F"), True))
-        # print(self.F_srr["C"]["T"][(-4, "V")])
-        # print(self.F_srr["E"]["I"][(3, "N")])
-        # print(self.F_srr["E"])
-        # print(self.F_srr["C"]["G"])
-        # print(self.Freq_s("C"))
+        # print("moi: ", self.F_s)
+        # print("ric: ", {'E': 151521, 'C': 249950, 'H': 223419})
+        # print("nico: ", {'C': 247262, 'E': 151521, 'H': 223301})
+        # print("sim: ", {'H': 228538, 'E': 154221, 'C': 253836})
+        # self.print_fsr()
 
-    def __str__(self):
-        """
-        Affiche le tableau
-        """
-
-        res = ""
-        # F_s
-        res += "F_s: \nH : {}   |   E : {}   |   C : {}\n\n   "\
-            .format(self.F_s["H"], self.F_s["E"], self.F_s["C"])
-
-        # F_sr
-        for a in self.aa:
-            res += a + "  "
-        res += "\nF_sr: \n"
-        for s in "HEC":
-            res += s + "| "
-            for a in self.aa:
-                res += "{}  ".format(self.F_sr[s][a])
-            res += "\n"
-        # F_srr
-        # res += "F_srr: \n"
-        # for s in "HEC":
-        #     res += s + ": \n"
-        #     for a in self.aa:
-        #         res += "   {} : ".format(a)
-        #         for f in self.F_srr[s][a]:
-        #             res += "{}({}):{}, ".format(f[1], f[0], self.F_srr[s][a][f])
-        #         res += "\n"
-        #     res += "\n"
-        return res
+    def print_fsr(self):
+        l = []
+        for i in self.F_srr:
+            for a in self.F_srr[i]:
+                l += self.F_srr[i][a].values()
+            # l += self.F_sr[i].values()
+        # print(sorted(l))
+        l = sorted(l)
+        t = open("compteur_fsrr.fasta", "w")
+        for j in l:
+            t.write("{}, ".format(j))
 
 
 class gorIII:
@@ -291,9 +275,6 @@ class gorIII:
         log(F_sr/Fn-s,r) + log(Fn-s/Fs)
         """
 
-        # return m.log10(self.c.Freq_sr(s,r)/self.c.Freq_sr(s,r,True)) + m.log10(\
-        #                self.c.Freq_s(s, True)/self.c.Freq_s(s))
-
         return (m.log10(self.c.Freq_sr(s, r)) - m.log10(self.c.Freq_sr(s,r,True)))\
              + (m.log10(self.c.Freq_s(s,True)) - m.log10(self.c.Freq_s(s)))
 
@@ -303,9 +284,6 @@ class gorIII:
         I(Sj, Rj+m, Rj) qui vaut
         log(F_srr/Fn-s,rr) + log(F_n-s,r / F_sr)
         """
-
-        # return m.log10(self.c.Freq_srr(s, r, rj)/ self.c.Freq_srr(s, r, rj, True))\
-        #      + m.log10(self.c.Freq_sr(s, r, True) / self.c.Freq_sr(s, r))
 
         return (m.log10(self.c.Freq_srr(s,r,rj)) - m.log10(self.c.Freq_srr(s,r,rj,True)))\
              + (m.log10(self.c.Freq_sr(s, r, True)) - m.log10(self.c.Freq_sr(s, r)))
@@ -343,132 +321,110 @@ class gorIII:
 
 class PredictionQuality:
     """ 
-    Classe représentant un évaluateur de la qualité d'une prédiction
+    Classe représentant un évaluateur de la qualité de plusieurs prédictions
     """
 
-    def __init__(self, prot, predicted):
+    def __init__(self, prot, counter):
         self.prot = prot
-        self.predicted = predicted
+        self.counter = counter
+        self.scores_q3 = []
+        self.scores_mcc = {"H": [], "E": [], "C": []}
 
-    def Q3(self):
+    def combine_prot(self):
+        """
+        Combine toutes les protéines pour former qu'une protéine
+        """
+        struct = pred = ""
+        for p in self.prot:
+            struct += p.get_structures()
+            pred += p.get_prediction()
+        return Protein("", "", struct, pred)
+
+    def Q3(self, prot = None):
         """
         Mesure de qualité d'une prédiction
         => nombre de résidus correctement prédits / nombre total de résidus
         """
+        if prot == None: # Si on veut Q3 sur l'ensemble des protéines
+            prot = self.combine_prot()
 
         corrects = 0
-        for i in range(len(self.predicted)):
-            if self.predicted[i] == self.prot.get_struct(i):
+        for i in range(len(prot.get_prediction())):
+            if prot.get_pred(i) == prot.get_struct(i):
                 corrects += 1
-        
-        return corrects/len(self.predicted)
 
-    def MCC(self):
-        """
-        Mesure de qualité d'une prédiction prenant en compte 
-        TP : prédit x alors que x
-        TN : prédit pas x alors que pas x
-        FP : prédit x alors que pas x
-        FN : prédit pas x alors que pas x
-        """
+        return corrects/len(prot.get_prediction())
 
+    def MCC(self, p = None):
+        """
+        Renvoie le calcul du mcc sur base d'une matrice de confusion
+        """
         mcc = {"H": 0, "E": 0, "C": 0}
+        if p == None:
+            p = self.combine_prot()
 
         for x in "HEC":
-            conf = {"TP": 0, "FP": 0, "FN": 0, "TN": 0} # mat de confusion
-            for i in range(len(self.predicted)):
-
+            TP = FP = FN = TN = 0
+            for i in range(len(p.get_prediction())):
                 # Si prédit x alors que x
-                if self.predicted[i] == x and self.predicted[i] == \
-                    self.prot.get_struct(i):
-                    conf["TP"] += 1
+                if p.get_pred(i) == x and p.get_pred(i) == p.get_struct(i): 
+                    TP += 1
                 # Si prédit x alors que pas x
-                elif self.predicted[i] == x and self.prot.get_struct(i) != x:
-                    conf["FP"] += 1
+                elif p.get_pred(i) == x and p.get_struct(i) != x: 
+                    FP += 1
                 # Si prédit pas x alors que x
-                elif self.predicted[i] != x and self.prot.get_struct(i) == x:
-                    conf["FN"] += 1
+                elif p.get_pred(i) != x and p.get_struct(i) == x: 
+                    FN += 1
                 # Si prédit pas x alors que pas x
-                elif self.predicted[i] != x and self.prot.get_struct(i) != x \
-                    and self.predicted[i] == self.prot.get_struct(i):
-                    conf["TN"] += 1
-
-            # Calcul du mcc
-            # (TPxTN-FPxFN) / sqrt( (TP+FP)(TP+FN)(TN+FP)(TN+FN) ) 
-
-            # dénominateur
-            den = m.sqrt((conf["TP"]+conf["FP"])*(conf["TP"]+conf["FN"])*\
-                         (conf["TN"]+conf["FP"])*(conf["TN"]+conf["FN"]))
+                elif p.get_pred(i) != x and p.get_struct(i) != x: 
+                    TN += 1
+            den = m.sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN))
             if den != 0:
-                mcc[x] += (conf["TP"]*conf["TN"]-conf["FP"]*conf["FN"]) / den
-        
+                mcc[x] += (TP*TN-FP*FN) / den
         return mcc
 
+    def test_prediction(self):
+        mcc = {"H": [0, 0, 0, 0], "E": [0, 0, 0, 0], "C": [0, 0, 0, 0]}
+        conf = [0, 0, 0, 0]
+        for p in self.prot:
+            tmp_g = gorIII(self.counter, p)
+            p.set_prediction(tmp_g.predict())
+            self.scores_q3.append(self.Q3(p))
+            mcc = self.MCC(p)
+            for x in "HEC":
+                self.scores_mcc[x].append(mcc[x])
 
-def test_prediction(prot, counter, display=False):
-    """
-    Teste la prédiction GOR3 sur les protéines données et les évalue
-    avec des scores Q3 et MCC
-    """
+        mcc = self.MCC()
+        q3 = self.Q3()
+        
+        print("Q3 global :", q3)
+        print("mcc global : ", mcc)
 
-    average_scores = {"Q3": 0, "MCC": {"H": 0, "E": 0, "C": 0}}
-    for p in prot:
-        tmp_g = gorIII(counter, p)
-        prediction = tmp_g.predict()
-        qua = PredictionQuality(p, prediction)
-        q3 = qua.Q3()
-        average_scores["Q3"] += q3
-        mcc = qua.MCC()
-        average_scores["MCC"]["H"] += mcc["H"]
-        average_scores["MCC"]["E"] += mcc["E"]
-        average_scores["MCC"]["C"] += mcc["C"]
-
-        if display:
-            print(p)
-            print("predicted: ")
-            print(prediction)
-            print("Q3: {}%, MCC: [H]: {}  [E]: {}  [C]: {}".format(\
-            q3*100, mcc["H"], mcc["E"], mcc["C"]))
-    
-    average_scores["Q3"] /= len(prot)
-    for s in average_scores["MCC"]:
-        average_scores["MCC"][s] /= len(prot) # pour la moyenne
-
-    print("Scores moyens: ", average_scores)
+    def ecart_type(self, option):
+        """
+        Renvoie l'écart type d'un ensemble de données
+        """        
+        if option == 1:
+            return statistics.stdev(self.scores_q3)
+        else:
+            return [statistics.stdev(self.scores_mcc["H"]),\
+                    statistics.stdev(self.scores_mcc["E"]),\
+                    statistics.stdev(self.scores_mcc["C"])]
     
 
 def main():
-    # d = t.time()
+
+    # ==================== compteurs 3000 prots =======================
+
     # p = ParserDSSP("dataset/dataset/CATH_info.txt", "dssp")
     # p.create_proteins("proteins.fasta")
-    # print("Temps écoulé: {} sec".format(t.time()-d))
-    # print(p.parse("dataset/dataset/dssp_test/1AVA.dssp", "C"))
-
-
-    # prot1 = ParserProteins("proteins2.fasta")
-    # prot1.parse()
-
-
-    # ======================== TESTs pour partie 3 ============================
-    # p1 = ParserDSSP("dataset/dataset/CATH_info_test.txt", "dssp_test")
-    # p1.create_proteins("proteins_test.fasta")
-    prot2 = ParserProteins("proteins_test.fasta") # les 5 prots
-    prot2.parse()
-    # c = Counter(prot2.get_proteins())
-    # c.compute_frequencies()
-    
-    # =============================== 1ere prot des 5 de test ================
-    # prot_test = prot2.get_prot(0)
-    # g = gorIII(c, prot_test)
-    # predicted = g.predict()
-    # print(prot2.get_prot(0))
-    # print("predicted: ")
-    # print(predicted)
-    # qua = PredictionQuality(prot2.get_prot(0), predicted)
-    # print("Q3: {}%".format(qua.Q3()*100))
-    # print("MCC: ", qua.MCC())
-
-    # ========================== 3000 prots =======================
+    # NICO
+    # prot3 = ParserProteins("dataset_nico.fasta")
+    # prot3.parse()
+    # RIC
+    # prot3 = ParserProteins("proteins_ric.fasta")
+    # prot3.parse()
+    # MOI
     prot3 = ParserProteins("proteins.fasta") # les 3000 prots
     prot3.parse()
     c1 = Counter(prot3.get_proteins()[:3000])
@@ -476,15 +432,25 @@ def main():
     c1.compute_frequencies()
     print("Temps écoulé pour compteurs des 3000 prots: {} sec".format(t.time()-d))
     
-    # d2 = t.time()
+    # ======================== PARTIE 2 ==============================
+
+    d2 = t.time()
     # test_prediction(prot3.get_proteins()[3000:], c1) # les 713 autres prots
-    # print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
+    qua1 = PredictionQuality(prot3.get_proteins()[3000:], c1)
+    qua1.test_prediction()
+    print(qua1.ecart_type(1))
+    print(qua1.ecart_type(2))
+    print("Temps écoulé pour prédire les 713 prots: {} sec".format(t.time()-d2))
 
     # ======================= PARTIE 3 ==============================
 
-    d = t.time()
-    test_prediction(prot2.get_proteins(), c1, True)
-    print("Temps écoulé pour prédire les 5 prots: {} sec".format(t.time()-d))
+    # p1 = ParserDSSP("dataset/dataset/CATH_info_test.txt", "dssp_test")
+    # p1.create_proteins("proteins_test.fasta")
+    # prot2 = ParserProteins("proteins_test.fasta") # les 5 prots
+    # prot2.parse()
+    # d = t.time()
+    # test_prediction(prot2.get_proteins(), c1, True)
+    # print("Temps écoulé pour prédire les 5 prots: {} sec".format(t.time()-d))
 
 if __name__ == "__main__":
     main()
