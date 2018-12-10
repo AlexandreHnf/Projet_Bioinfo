@@ -399,6 +399,7 @@ class PredictionQuality:
         
         print("Q3 global :", q3)
         print("mcc global : ", mcc)
+        
 
     def ecart_type(self, option):
         """
